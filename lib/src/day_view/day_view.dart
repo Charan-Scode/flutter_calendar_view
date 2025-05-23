@@ -226,9 +226,14 @@ class DayView<T extends Object?> extends StatefulWidget {
   /// Flag to keep scrollOffset of pages on page change
   final bool keepScrollOffset;
 
+  /// Vertical Scroll Controller To Scroll Calendar
+  final ScrollController? verticalScrollController;
+
+
   /// Main widget for day view.
   const DayView({
     Key? key,
+    this.verticalScrollController,
     this.eventTileBuilder,
     this.dateStringBuilder,
     this.timeStringBuilder,
@@ -349,9 +354,23 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
 
   final _scrollConfiguration = EventScrollConfiguration<T>();
 
+  late final ScrollController _internalVerticalScrollController;
+
+  ScrollController get _effectiveVerticalScrollController =>
+      widget.verticalScrollController ?? _internalVerticalScrollController;
+
   @override
   void initState() {
     super.initState();
+    _internalVerticalScrollController = ScrollController();
+
+    // Optional: If you want to set initial offset from widget.scrollOffset:
+    if (widget.scrollOffset != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _effectiveVerticalScrollController.jumpTo(widget.scrollOffset!);
+      });
+    }
+
     _lastScrollOffset = widget.scrollOffset ??
         widget.startDuration.inMinutes * widget.heightPerMinute;
 
@@ -424,6 +443,10 @@ class DayViewState<T extends Object?> extends State<DayView<T>> {
 
   @override
   void dispose() {
+    // Only dispose internal controller if used
+    if (widget.verticalScrollController == null) {
+      _internalVerticalScrollController.dispose();
+    }
     _controller?.removeListener(_reloadCallback);
     _pageController.dispose();
     super.dispose();
